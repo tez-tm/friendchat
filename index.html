@@ -1,0 +1,496 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FriendChat 💚</title>
+<style>
+:root {
+  --bg:#071b22; --panel:#0d252d; --panel2:#17343d;
+  --line:#24434b; --text:#f2f8f8; --muted:#9bb4bc;
+  --green:#00d6a0; --bubble:#18343d; --mine:#075e54;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; height:100vh; overflow:hidden;
+  font-family:Arial,sans-serif; background:var(--bg); color:var(--text);
+}
+button,input { font:inherit; }
+button { cursor:pointer; }
+.app {
+  height:100vh; display:grid; grid-template-columns:320px minmax(0,1fr);
+  max-width:1500px; margin:auto; border-inline:1px solid var(--line);
+}
+.sidebar { display:flex; flex-direction:column; min-width:0; background:var(--panel); border-right:1px solid var(--line); }
+.brand { display:flex; align-items:center; gap:11px; padding:20px 16px; }
+.logo {
+  width:47px;height:47px;display:grid;place-items:center;border-radius:16px;
+  background:linear-gradient(135deg,#00d6a0,#087e85);font-size:26px;
+}
+.brand h1 { margin:0;font-size:23px;letter-spacing:-.7px; }
+.brand h1 span { color:var(--green); }
+.brand p { margin:5px 0 0;font-size:12px;color:var(--muted); }
+.add {
+  margin-left:auto;width:43px;height:43px;border:0;border-radius:15px;
+  background:var(--green);color:#03261f;font-size:27px;
+  box-shadow:0 0 20px #00d6a026;
+}
+.search-wrap { padding:0 14px 13px; }
+.search {
+  width:100%;padding:12px;border:1px solid transparent;border-radius:13px;
+  outline:none;background:#1b3640;color:var(--text);
+}
+.search:focus,input:focus { border-color:var(--green); }
+.filters { display:flex;gap:7px;padding:0 14px 13px; }
+.filter {
+  flex:1;padding:9px 3px;border:1px solid transparent;border-radius:20px;
+  background:#142e37;color:var(--text);font-size:12px;
+}
+.filter.active { background:var(--green);color:#03241d;font-weight:bold; }
+.chat-list { flex:1;overflow-y:auto; }
+.contact {
+  display:flex;align-items:center;gap:11px;width:100%;padding:13px 14px;
+  border:0;border-left:3px solid transparent;background:transparent;color:var(--text);
+  text-align:left;
+}
+.contact:hover { background:#17333b; }
+.contact.active { background:#12373b;border-left-color:var(--green); }
+.avatar {
+  width:47px;height:47px;flex-shrink:0;display:grid;place-items:center;
+  border-radius:50%;background:linear-gradient(135deg,#315d69,#426c8e);font-size:23px;
+}
+.info { min-width:0;flex:1; }
+.name { font-size:14px;font-weight:bold;overflow-wrap:anywhere; }
+.preview { margin-top:6px;color:var(--muted);font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis; }
+.self { display:flex;align-items:center;gap:10px;padding:13px 16px;border-top:1px solid var(--line); }
+.self .avatar { width:39px;height:39px; }
+.self small { display:block;margin-top:4px;color:var(--green); }
+.main {
+  min-width:0;display:flex;flex-direction:column;
+  background-color:#071e26;
+  background-image:radial-gradient(#1d414b .8px,transparent .8px);
+  background-size:22px 22px;
+}
+.topbar {
+  display:flex;align-items:center;gap:12px;padding:13px 17px;
+  background:#102a32f5;border-bottom:1px solid var(--line);
+}
+.topbar .avatar { width:43px;height:43px; }
+.top-name { font-weight:bold; }
+.status { margin-top:5px;color:var(--muted);font-size:12px; }
+.actions { margin-left:auto;display:flex;gap:6px; }
+.actions button,.back {
+  border:0;border-radius:11px;background:transparent;color:var(--muted);
+  padding:9px;font-size:19px;
+}
+.actions button:hover,.back:hover { background:var(--panel2);color:var(--green); }
+.back { display:none; }
+.messages { flex:1;overflow-y:auto;padding:24px clamp(12px,4vw,40px);display:flex;flex-direction:column;gap:12px; }
+.empty-state { margin:auto;max-width:340px;text-align:center;padding:28px 18px;animation:appear .3s ease-out; }
+.big-icon {
+  width:92px;height:92px;display:grid;place-items:center;margin:0 auto 20px;
+  border:1px solid #23534d;border-radius:30px;background:#10352f;font-size:43px;
+  box-shadow:0 0 40px #00d6a012;
+}
+.empty-state h2 { margin:0 0 10px;font-size:23px; }
+.empty-state p { color:var(--muted);font-size:14px;line-height:1.7;margin:0 0 20px; }
+.primary {
+  padding:12px 18px;border:0;border-radius:13px;background:var(--green);
+  color:#03261f;font-weight:bold;
+}
+.message {
+  max-width:min(78%,430px);align-self:flex-start;padding:10px 12px 7px;
+  border:1px solid #29454d;border-radius:5px 15px 15px 15px;
+  background:var(--bubble);overflow-wrap:anywhere;animation:appear .2s ease-out;
+}
+.message.mine { align-self:flex-end;background:var(--mine);border-color:#08786c;border-radius:15px 5px 15px 15px; }
+.message p { margin:0;font-size:14px;line-height:1.5;white-space:pre-wrap; }
+.meta { text-align:right;margin-top:5px;color:#b6d2d4;font-size:10px; }
+.composer { padding:12px 15px;background:#102a32f5;border-top:1px solid var(--line); }
+.emoji-row { display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px; }
+.emoji-row button { border:0;border-radius:8px;background:transparent;padding:4px;font-size:19px; }
+.emoji-row button:hover { background:#24434b;transform:translateY(-2px); }
+.send-row { display:flex;gap:9px; }
+#message { min-width:0;flex:1;padding:13px;border:1px solid #294750;border-radius:14px;outline:none;background:#1a3740;color:var(--text); }
+.send { border:0;border-radius:13px;padding:0 17px;background:var(--green);color:#03261f;font-weight:bold; }
+.note { padding-top:9px;text-align:center;font-size:10px;color:var(--muted); }
+dialog {
+  width:min(390px,calc(100% - 28px));padding:23px;border:1px solid var(--line);
+  border-radius:21px;background:var(--panel);color:var(--text);
+  box-shadow:0 20px 80px #0008;
+}
+dialog::backdrop { background:#0009;backdrop-filter:blur(4px); }
+dialog h2 { margin:0 0 8px; }
+dialog p { font-size:13px;line-height:1.6;color:var(--muted); }
+.field { display:block;width:100%;padding:12px;margin:10px 0;border:1px solid var(--line);border-radius:12px;background:#17343d;color:var(--text);outline:none; }
+.dialog-actions { display:flex;gap:9px;justify-content:flex-end;margin-top:18px; }
+.secondary { padding:11px 15px;border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--text); }
+@keyframes appear { from {opacity:0;transform:translateY(7px)} to {opacity:1;transform:translateY(0)} }
+@media(max-width:650px) {
+  .app { grid-template-columns:1fr; }
+  .main { display:none; }
+  body.chat-open .sidebar { display:none; }
+  body.chat-open .main { display:flex; }
+  .brand { padding:14px; }
+  .back { display:inline-block; }
+  .messages { padding:15px 12px; }
+  .message { max-width:88%; }
+  .composer { padding:10px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after { animation:none!important;transition:none!important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">💬</div>
+      <div><h1>Friend<span>Chat</span></h1><p>Chat · Connect · Have Fun</p></div>
+      <button class="add" id="addFriend" title="Add friend" aria-label="Add friend">+</button>
+    </div>
+
+    <div class="search-wrap">
+      <input class="search" id="search" placeholder="⌕  Search chats..." aria-label="Search chats">
+    </div>
+
+    <div class="filters">
+      <button class="filter active" data-filter="All">All</button>
+      <button class="filter" data-filter="Friends">Friends</button>
+      <button class="filter" data-filter="Groups">Groups</button>
+      <button class="filter" data-filter="Unread">Unread</button>
+    </div>
+
+    <div class="chat-list" id="chatList"></div>
+
+    <div class="self">
+      <div class="avatar">😎</div>
+      <div style="flex:1"><strong id="myName">You</strong><small>● Local demo</small></div>
+      <button class="actions" id="changeName" style="margin:0" aria-label="Change nickname">✎</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="back" id="back" aria-label="Back to chats">←</button>
+      <div class="avatar" id="activeAvatar">💬</div>
+      <div><div class="top-name" id="activeName">Welcome to FriendChat</div><div class="status" id="activeStatus">Your chats, your people</div></div>
+      <div class="actions"><button id="chatInfo" title="Chat information">ⓘ</button></div>
+    </div>
+
+    <section class="messages" id="messages" aria-live="polite"></section>
+
+    <form class="composer" id="form" hidden>
+      <div class="emoji-row">
+        <button type="button" data-emoji="😀">😀</button>
+        <button type="button" data-emoji="😂">😂</button>
+        <button type="button" data-emoji="❤️">❤️</button>
+        <button type="button" data-emoji="👍">👍</button>
+        <button type="button" data-emoji="🎉">🎉</button>
+        <button type="button" data-emoji="😎">😎</button>
+        <button type="button" data-emoji="🙏">🙏</button>
+        <button type="button" data-emoji="🚀">🚀</button>
+      </div>
+      <div class="send-row">
+        <input id="message" maxlength="500" placeholder="Type a message..." autocomplete="off" required>
+        <button class="send" type="submit">Send ➤</button>
+      </div>
+      <div class="note">Local demo · Only saved in this browser</div>
+    </form>
+  </main>
+</div>
+
+<dialog id="friendDialog">
+  <form id="friendForm">
+    <h2>✨ Add a friend</h2>
+    <p>Add a contact to your local demo. This does not send an invitation or connect to a real account yet.</p>
+    <label for="friendName">Friend's nickname</label>
+    <input class="field" id="friendName" maxlength="30" placeholder="e.g. Sam" required>
+    <label for="friendEmoji">Choose an avatar</label>
+    <select class="field" id="friendEmoji">
+      <option>😊</option><option>😎</option><option>🐼</option>
+      <option>🐸</option><option>🦊</option><option>🐱</option>
+      <option>🚀</option><option>🎮</option><option>🌻</option>
+    </select>
+    <div class="dialog-actions">
+      <button type="button" class="secondary" id="cancelAdd">Cancel</button>
+      <button class="primary" type="submit">Add friend</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+let chats = [];
+let activeId = null;
+let filter = "All";
+let username = "You";
+
+function loadData() {
+  try {
+    username = localStorage.getItem("fc-name") || "You";
+    const saved = JSON.parse(localStorage.getItem("fc-chats") || "[]");
+    if (Array.isArray(saved)) {
+      chats = saved.filter(c =>
+        c && typeof c.id === "string" &&
+        typeof c.name === "string" &&
+        typeof c.avatar === "string" &&
+        Array.isArray(c.messages)
+      ).map(c => ({
+        ...c,
+        messages: c.messages.filter(m =>
+          m && typeof m.text === "string" &&
+          typeof m.time === "string"
+        ).slice(-100)
+      }));
+    }
+  } catch (e) {
+    chats = [];
+    username = "You";
+  }
+}
+
+function saveData() {
+  try {
+    localStorage.setItem("fc-name", username);
+    localStorage.setItem("fc-chats", JSON.stringify(chats));
+  } catch (e) {}
+}
+
+function activeChat() {
+  return chats.find(c => c.id === activeId) || null;
+}
+
+function renderList() {
+  const list = $("chatList");
+  list.replaceChildren();
+  const query = $("search").value.trim().toLowerCase();
+
+  const visible = chats.filter(c => {
+    const last = c.messages.at(-1)?.text || "Start a conversation";
+    return (c.name + " " + last).toLowerCase().includes(query) &&
+      (filter === "All" || c.type === filter ||
+       (filter === "Unread" && c.unread > 0));
+  });
+
+  if (!visible.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.innerHTML = "<div class='big-icon'>💬</div><h2>No chats yet</h2><p>Add a friend to start building your chat list.</p>";
+    const add = document.createElement("button");
+    add.className = "primary";
+    add.textContent = "+ Add your first friend";
+    add.addEventListener("click", showAddFriend);
+    empty.append(add);
+    list.append(empty);
+    return;
+  }
+
+  visible.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "contact" + (c.id === activeId ? " active" : "");
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    avatar.textContent = c.avatar;
+
+    const info = document.createElement("div");
+    info.className = "info";
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = c.name;
+    const preview = document.createElement("div");
+    preview.className = "preview";
+    preview.textContent = c.messages.at(-1)?.text || "Say hello! 👋";
+
+    info.append(name, preview);
+    b.append(avatar, info);
+    b.addEventListener("click", () => openChat(c.id));
+    list.append(b);
+  });
+}
+
+function showWelcome() {
+  $("activeAvatar").textContent = "💬";
+  $("activeName").textContent = "Welcome to FriendChat";
+  $("activeStatus").textContent = "Your chats, your people";
+  $("form").hidden = true;
+  $("messages").replaceChildren();
+
+  const welcome = document.createElement("div");
+  welcome.className = "empty-state";
+  const icon = document.createElement("div");
+  icon.className = "big-icon";
+  icon.textContent = "💚";
+  const title = document.createElement("h2");
+  title.textContent = "Your space. Your friends.";
+  const description = document.createElement("p");
+  description.textContent = "Your chat list is empty — just how it should be! Add a friend to start a conversation.";
+  const button = document.createElement("button");
+  button.className = "primary";
+  button.textContent = "+ Add a friend";
+  button.addEventListener("click", showAddFriend);
+  welcome.append(icon, title, description, button);
+  $("messages").append(welcome);
+}
+
+function openChat(id) {
+  activeId = id;
+  const c = activeChat();
+  if (!c) {
+    showWelcome();
+    renderList();
+    return;
+  }
+
+  c.unread = 0;
+  $("activeAvatar").textContent = c.avatar;
+  $("activeName").textContent = c.name;
+  $("activeStatus").textContent = "Local demo · Not connected online";
+  $("form").hidden = false;
+  document.body.classList.add("chat-open");
+  renderMessages();
+  renderList();
+}
+
+function renderMessages() {
+  const c = activeChat();
+  if (!c) return showWelcome();
+
+  const area = $("messages");
+  area.replaceChildren();
+
+  if (!c.messages.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    const icon = document.createElement("div");
+    icon.className = "big-icon";
+    icon.textContent = c.avatar;
+    const title = document.createElement("h2");
+    title.textContent = "Say hello to " + c.name + "!";
+    const p = document.createElement("p");
+    p.textContent = "This is the beginning of your local demo conversation.";
+    empty.append(icon, title, p);
+    area.append(empty);
+    return;
+  }
+
+  c.messages.forEach(m => {
+    const bubble = document.createElement("article");
+    bubble.className = "message" + (m.name === username ? " mine" : "");
+    const p = document.createElement("p");
+    p.textContent = m.text;
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.textContent = m.time;
+    bubble.append(p, meta);
+    area.append(bubble);
+  });
+  area.scrollTop = area.scrollHeight;
+}
+
+function showAddFriend() {
+  $("friendName").value = "";
+  $("friendEmoji").value = "😊";
+  $("friendDialog").showModal();
+  $("friendName").focus();
+}
+
+$("addFriend").addEventListener("click", showAddFriend);
+$("cancelAdd").addEventListener("click", () => $("friendDialog").close());
+
+$("friendForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("friendName").value.trim();
+  if (!name) return;
+
+  if (chats.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+    alert("You already added a contact with that nickname.");
+    return;
+  }
+
+  const c = {
+    id: "friend-" + Date.now(),
+    name: name.slice(0, 30),
+    avatar: $("friendEmoji").value,
+    type: "Friends",
+    unread: 0,
+    messages: []
+  };
+
+  chats.unshift(c);
+  saveData();
+  $("friendDialog").close();
+  openChat(c.id);
+  $("message").focus();
+});
+
+$("form").addEventListener("submit", e => {
+  e.preventDefault();
+  const input = $("message");
+  const text = input.value.trim();
+  const c = activeChat();
+  if (!text || !c) return;
+
+  c.messages.push({
+    name: username,
+    text: text.slice(0,500),
+    time: new Date().toLocaleTimeString([], {
+      hour:"2-digit", minute:"2-digit"
+    })
+  });
+  c.messages = c.messages.slice(-100);
+  saveData();
+  renderMessages();
+  renderList();
+  input.value = "";
+  input.focus();
+});
+
+document.querySelectorAll("[data-emoji]").forEach(b => {
+  b.addEventListener("click", () => {
+    $("message").value += b.dataset.emoji;
+    $("message").focus();
+  });
+});
+
+document.querySelectorAll("[data-filter]").forEach(b => {
+  b.addEventListener("click", () => {
+    filter = b.dataset.filter;
+    document.querySelectorAll("[data-filter]").forEach(x =>
+      x.classList.toggle("active", x === b)
+    );
+    renderList();
+  });
+});
+
+$("search").addEventListener("input", renderList);
+
+$("changeName").addEventListener("click", () => {
+  const value = prompt("Choose your nickname:", username);
+  if (value && value.trim()) {
+    username = value.trim().slice(0,24);
+    $("myName").textContent = username;
+    saveData();
+  }
+});
+
+$("back").addEventListener("click", () => {
+  document.body.classList.remove("chat-open");
+});
+
+$("chatInfo").addEventListener("click", () => {
+  const c = activeChat();
+  alert(c
+    ? c.name + "\nLocal demo contact\n" + c.messages.length + " messages\n\nThis person is not connected to an online account."
+    : "FriendChat\nAdd a friend to get started!");
+});
+
+loadData();
+$("myName").textContent = username;
+renderList();
+showWelcome();
+</script>
+</body>
+</html>
